@@ -4,50 +4,80 @@ using UnityEngine;
 
 public class MovingScript : MonoBehaviour
 {
-    public float speed;
-    public float maxSpeed;
     private Rigidbody2D rb2d;
+    private SpriteRenderer spriterender;
+    private bool isGrounded = true;
+    public float speed = 0.3f;
+    public float maxSpeed = 20f;
+    public float jumpSpeed = 25f;
 
+    [SerializeField]
+    Transform GroundCheck;
     // Start is called before the first frame update
     void Start()
     {
         rb2d = GetComponent<Rigidbody2D>();
+        spriterender = GetComponent<SpriteRenderer>();
     }
 
     // Update is called once per frame
     void Update()
     {
-        Run();
+        IsGrounded();
+        Move();
     }
 
-    private void Run()
+    private void Move()
     {
         var velocity = rb2d.velocity;
+        rb2d.velocity = GetVelocity();
+    }
+
+    private Vector2 GetVelocity()
+    {
         var moveHorizontal = Input.GetAxis("Horizontal");
-        Vector2 movement = new Vector2(0, 0);
+        var moveVertical = Input.GetAxis("Vertical");
+        var velocity = new Vector2(GetxVelocity(moveHorizontal), GetyVelocity(moveVertical));
+        return velocity;
+    }
+
+    private float GetxVelocity(float moveHorizontal)
+    {
+        var velocity = rb2d.velocity;
+        var xVelocity = velocity.x;
         if (moveHorizontal > 0)
         {
-            movement.x = 1;
-            if (velocity.x < 0)
-                movement.x = 2;
+            if (xVelocity <= maxSpeed)
+                xVelocity += speed;
+            if (xVelocity > maxSpeed)
+                xVelocity = maxSpeed;
+            spriterender.flipX = false;
         }
         else if (moveHorizontal < 0)
         {
-            movement.x = -1;
-            if (velocity.x > 0)
-                movement.x = -2;
+            if (xVelocity >= -maxSpeed)
+                xVelocity -= speed;
+            if (xVelocity < -maxSpeed)
+                xVelocity = -maxSpeed;
+            spriterender.flipX = true;
         }
-
-        if (velocity.x < maxSpeed && velocity.x > -maxSpeed)
-            rb2d.AddForce(movement * speed);
-
-        if (moveHorizontal == 0f)
-        {
-            if (velocity.x > 0)
-                movement.x = -1;
-            else
-                movement.x = 1;
-            rb2d.AddForce(movement * speed);
-        }
+        return xVelocity;
     }
+
+    private float GetyVelocity(float moveVertical)
+    {
+        var velocity = rb2d.velocity;
+        var yVelocity = velocity.y;
+        if (isGrounded && moveVertical > 0)
+            yVelocity = jumpSpeed;
+        return yVelocity;
+    }
+
+    private void IsGrounded()
+    {
+        isGrounded = Physics2D.Linecast(transform.position, GroundCheck.position, 1 << LayerMask.NameToLayer("Foreground"));
+        if (isGrounded)
+            rb2d.velocity = new Vector2(rb2d.velocity.x, 0);
+    }
+
 }
